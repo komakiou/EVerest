@@ -193,16 +193,27 @@ void evse_board_supportImpl::handle_pwm_on(double& value) {
 void evse_board_supportImpl::handle_cp_state_X1() {
     // your code for cmd cp_state_X1 goes here
     EVLOG_info << "evse_board_supportImpl::handle_cp_state_X1()";
+
+    uint8_t pwm_int = 100;
+    if(i2c_write_write(fd, mod->config.i2c_addr, 6, &pwm_int, 1) != 0){
+        EVLOG_error << "evse_board_supportImpl::handle_cp_state_X1:  i2c_write_write() failed"; 
+    }
+
 }
 
 void evse_board_supportImpl::handle_cp_state_F() {
     // your code for cmd cp_state_F goes here
     EVLOG_info << "evse_board_supportImpl::handle_cp_state_F()";
+
+    uint8_t pwm_int = 0;
+    if(i2c_write_write(fd, mod->config.i2c_addr, 6, &pwm_int, 1) != 0){
+        EVLOG_error << "evse_board_supportImpl::handle_cp_state_F:  i2c_write_write() failed"; 
+    }
 }
 
 void evse_board_supportImpl::handle_cp_state_E() {
     // your code for cmd cp_state_E goes here
-    EVLOG_info << "evse_board_supportImpl::handle_cp_state_E()";
+    EVLOG_error << "evse_board_supportImpl::handle_cp_state_E(): not implemented";
 }
 
 void evse_board_supportImpl::handle_allow_power_on(types::evse_board_support::PowerOnOff& value) {
@@ -226,8 +237,8 @@ void evse_board_supportImpl::i2c_read_thread(){
     {
         sleep(1);
 
-        uint16_t adc_pos;
-        uint16_t adc_neg;
+        int16_t adc_pos;
+        int16_t adc_neg;
 
         if(i2c_read_write(fd, mod->config.i2c_addr, 2, (uint8_t*)&adc_pos, 2) != 0)
         {
@@ -239,13 +250,27 @@ void evse_board_supportImpl::i2c_read_thread(){
             EVLOG_error << "evse_board_supportImpl::init:  i2c_read_write(adc_neg) failed"; 
         }
 
-        double cp_pos_v = ntohs(adc_pos)*13.2/1024;
-        double cp_neg_v = ntohs(adc_neg)*13.2/1024;
+        adc_pos = ntohs(adc_pos);
+        adc_neg = ntohs(adc_neg);
+
+        cp_pos_v = adc_pos*13.2/1024;
+        cp_neg_v = adc_neg*13.2/1024;
 
         EVLOG_info << "CP: (" << adc_pos << ") " << cp_pos_v << " (" << adc_neg << ") " << cp_neg_v;
 
         types::board_support_common::BspEvent event;
-        event.event = types::board_support_common::Event::A;
+
+        if(cp_pos_v > 10.5)
+            event.event = types::board_support_common::Event::A;
+        else if(cp_pos_v > 7.5)
+            event.event = types::board_support_common::Event::B;
+        else if(cp_pos_v > 4.5)
+            event.event = types::board_support_common::Event::C;
+        else if(cp_pos_v > 1.5)
+            event.event = types::board_support_common::Event::D;
+        else
+            event.event = types::board_support_common::Event::E;
+
         publish_event(event);
     }
 }

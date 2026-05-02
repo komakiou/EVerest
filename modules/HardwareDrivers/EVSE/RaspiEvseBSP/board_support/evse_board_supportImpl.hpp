@@ -59,6 +59,8 @@ private:
 
     int fd;
     double pwm;
+    double cp_pos_v;
+    double cp_neg_v;
     // ev@3370e4dd-95f4-47a9-aaec-ea76f34a66c9:v1
 };
 
