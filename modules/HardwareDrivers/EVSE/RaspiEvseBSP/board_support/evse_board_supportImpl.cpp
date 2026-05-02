@@ -81,46 +81,27 @@ static int i2c_read_write(int fd, uint8_t addr, uint8_t reg, uint8_t *buf, uint1
 }
 
 /**
- * Perform an atomic write+write using the ioctl interface.
+ * i2c_write_reg() - Write a single byte to a register.
  *
- * Some devices require the write and write to be a single I2C transaction
- * (no STOP condition between them — a "repeated START"). The I2C_RDWR ioctl
- * achieves this when plain write()+write() sequences don't work.
+ * Sends [reg, value] as one I2C write transaction.
  *
- * @fd:       Open I2C file descriptor
- * @addr:     7-bit slave address
- * @reg:      Register to write to
- * @buf:      Buffer to store result
- * @len:      Number of bytes to write
+ * @fd:    Open I2C file descriptor
+ * @reg:   Register address
+ * @value: Byte to write
  *
  * Returns 0 on success, -1 on failure.
  */
-static int i2c_write_write(int fd, uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t len)
+int i2c_write_reg(int fd, uint8_t reg, uint8_t value)
 {
-    struct i2c_msg msgs[2];
-    struct i2c_rdwr_ioctl_data data;
+    uint8_t buf[2] = { reg, value };
  
-    /* Message 0: write the register address */
-    msgs[0].addr  = addr;
-    msgs[0].flags = 0;          /* write */
-    msgs[0].len   = 1;
-    msgs[0].buf   = &reg;
- 
-    /* Message 1: read the data (repeated START, no STOP between) */
-    msgs[1].addr  = addr;
-    msgs[1].flags = 0;  /* write */
-    msgs[1].len   = len;
-    msgs[1].buf   = buf;
- 
-    data.msgs  = msgs;
-    data.nmsgs = 2;
- 
-    if (ioctl(fd, I2C_RDWR, &data) < 0) {
-        perror("i2c_read_write: ioctl I2C_RDWR");
+    if (write(fd, buf, sizeof(buf)) != sizeof(buf)) {
+        perror("i2c_write_reg: write");
         return -1;
     }
     return 0;
 }
+
 
 namespace module {
 namespace board_support {
@@ -151,10 +132,29 @@ void evse_board_supportImpl::init() {
 
     EVLOG_info << "sw_ver: " << (int)sw_ver;
     EVLOG_info << "sw_type: " << (int)sw_type;
+
+    caps.max_current_A_import = 16;
+    caps.min_current_A_import = 0;
+    caps.max_phase_count_import = 1;
+    caps.min_phase_count_import = 1;
+    caps.max_current_A_export = 0;
+    caps.min_current_A_export = 0;
+    caps.max_phase_count_export = 1;
+    caps.min_phase_count_export = 1;
+    caps.supports_changing_phases_during_charging = false;
+    caps.supports_cp_state_E = false;
+    caps.connector_type = types::evse_board_support::Connector_type::IEC62196Type2Cable;
+    caps.max_plug_temperature_C = 100;
 }
 
 void evse_board_supportImpl::ready() {
+    EVLOG_info << "evse_board_supportImpl::ready()";
+
     i2c_read_thread_handle = std::thread(&evse_board_supportImpl::i2c_read_thread, this);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    publish_capabilities(caps);
 }
 
 void evse_board_supportImpl::handle_enable(bool& value) {
@@ -164,7 +164,7 @@ void evse_board_supportImpl::handle_enable(bool& value) {
     if(value == true)
     {
         uint8_t pwm_int = pwm;
-        if(i2c_write_write(fd, mod->config.i2c_addr, 6, &pwm_int, 1) != 0){
+        if(i2c_write_reg(fd, 6, pwm_int) != 0){
             EVLOG_error << "evse_board_supportImpl::handle_enable:  i2c_write_write() failed"; 
         }
 
@@ -172,7 +172,7 @@ void evse_board_supportImpl::handle_enable(bool& value) {
     else
     {
         uint8_t pwm_int = 0;
-        if(i2c_write_write(fd, mod->config.i2c_addr, 6, &pwm_int, 1) != 0){
+        if(i2c_write_reg(fd, 6, pwm_int) != 0){
             EVLOG_error << "evse_board_supportImpl::handle_enable:  i2c_write_write() failed"; 
         }
     }
@@ -184,9 +184,9 @@ void evse_board_supportImpl::handle_pwm_on(double& value) {
 
     pwm = value;
 
-    uint8_t pwm_int = pwm;
-    if(i2c_write_write(fd, mod->config.i2c_addr, 6, &pwm_int, 1) != 0){
-        EVLOG_error << "evse_board_supportImpl::handle_enable:  i2c_write_write() failed"; 
+    uint8_t pwm_int = 100-pwm;
+    if(i2c_write_reg(fd, 6, pwm_int) != 0){
+        EVLOG_error << "evse_board_supportImpl::handle_enable:  i2c_write_reg() failed"; 
     }
 }
 
@@ -194,8 +194,8 @@ void evse_board_supportImpl::handle_cp_state_X1() {
     // your code for cmd cp_state_X1 goes here
     EVLOG_info << "evse_board_supportImpl::handle_cp_state_X1()";
 
-    uint8_t pwm_int = 100;
-    if(i2c_write_write(fd, mod->config.i2c_addr, 6, &pwm_int, 1) != 0){
+    uint8_t pwm_int = 0;
+    if(i2c_write_reg(fd, 6, pwm_int) != 0){
         EVLOG_error << "evse_board_supportImpl::handle_cp_state_X1:  i2c_write_write() failed"; 
     }
 
@@ -205,8 +205,8 @@ void evse_board_supportImpl::handle_cp_state_F() {
     // your code for cmd cp_state_F goes here
     EVLOG_info << "evse_board_supportImpl::handle_cp_state_F()";
 
-    uint8_t pwm_int = 0;
-    if(i2c_write_write(fd, mod->config.i2c_addr, 6, &pwm_int, 1) != 0){
+    uint8_t pwm_int = 100;
+    if(i2c_write_reg(fd, 6, pwm_int) != 0){
         EVLOG_error << "evse_board_supportImpl::handle_cp_state_F:  i2c_write_write() failed"; 
     }
 }
@@ -235,7 +235,7 @@ void evse_board_supportImpl::i2c_read_thread(){
     
     for(;;)
     {
-        sleep(1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         int16_t adc_pos;
         int16_t adc_neg;
