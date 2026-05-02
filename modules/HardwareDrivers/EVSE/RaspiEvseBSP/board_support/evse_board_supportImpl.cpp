@@ -218,7 +218,7 @@ void evse_board_supportImpl::handle_cp_state_E() {
 
 void evse_board_supportImpl::handle_allow_power_on(types::evse_board_support::PowerOnOff& value) {
     // your code for cmd allow_power_on goes here
-    EVLOG_info << "evse_board_supportImpl::handle_allow_power_on";
+    EVLOG_info << "evse_board_supportImpl::handle_allow_power_on " << value.allow_power_on;
 
     if(value.allow_power_on == true)
     {

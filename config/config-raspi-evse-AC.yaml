@@ -24,11 +24,11 @@ active_modules:
         - module_id: EvseV2G0
           implementation_id: charger
     config_module:
-      ac_enforce_hlc: true
-      ac_hlc_enabled: true
-      ac_hlc_use_5percent: true
+      ac_enforce_hlc: false
+      ac_hlc_enabled: false
+      ac_hlc_use_5percent: false
       ac_nominal_voltage: 230
-      ac_with_soc: true
+      ac_with_soc: false
       autocharge_use_slac_instead_of_hlc: false
       cable_check_enable_imd_self_test: false
       cable_check_wait_below_60V_before_finish: false
