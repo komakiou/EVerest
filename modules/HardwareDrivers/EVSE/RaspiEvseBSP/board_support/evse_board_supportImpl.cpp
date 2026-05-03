@@ -225,12 +225,16 @@ void evse_board_supportImpl::handle_allow_power_on(types::evse_board_support::Po
         types::board_support_common::BspEvent event;
         event.event = types::board_support_common::Event::PowerOn;
         publish_event(event);
+
+        mod->enable_power_flow_sim = true;
     }
     else
     {
         types::board_support_common::BspEvent event;
         event.event = types::board_support_common::Event::PowerOff;
         publish_event(event);
+
+        mod->enable_power_flow_sim = false;
     }
 }
 

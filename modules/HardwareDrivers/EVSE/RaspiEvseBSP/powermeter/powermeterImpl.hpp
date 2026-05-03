@@ -13,7 +13,8 @@
 #include "../RaspiEvseBSP.hpp"
 
 // ev@75ac1216-19eb-4182-a85c-820f1fc2c091:v1
-// insert your custom include headers here
+#include <utils/thread.hpp>
+#include <random>
 // ev@75ac1216-19eb-4182-a85c-820f1fc2c091:v1
 
 namespace module {
@@ -25,10 +26,14 @@ class powermeterImpl : public powermeterImplBase {
 public:
     powermeterImpl() = delete;
     powermeterImpl(Everest::ModuleAdapter* ev, const Everest::PtrContainer<RaspiEvseBSP>& mod, Conf& config) :
-        powermeterImplBase(ev, "powermeter"), mod(mod), config(config) {};
+        powermeterImplBase(ev, "powermeter"), mod(mod), config(config)
+        {
+            std::random_device rd; 
+            std::mt19937 gen(rd()); 
+        };
 
     // ev@8ea32d28-373f-4c90-ae5e-b4fcc74e2a61:v1
-    // insert your public definitions here
+    // insert your protected definitions here
     // ev@8ea32d28-373f-4c90-ae5e-b4fcc74e2a61:v1
 
 protected:
@@ -49,7 +54,14 @@ private:
     virtual void ready() override;
 
     // ev@3370e4dd-95f4-47a9-aaec-ea76f34a66c9:v1
-    // insert your private definitions here
+    bool power_on;
+
+    Everest::Thread thread_handle;
+    void thread();
+
+    std::mt19937 gen;
+
+    double energy_wh_import_total;
     // ev@3370e4dd-95f4-47a9-aaec-ea76f34a66c9:v1
 };
 

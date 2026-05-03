@@ -17,6 +17,8 @@ void RaspiEvseBSP::init() {
     EVLOG_info << "caps_min_current_A: " << config.caps_min_current_A;
     EVLOG_info << "caps_max_current_A: " << config.caps_max_current_A;
 
+    enable_power_flow_sim = false;
+
 }
 
 void RaspiEvseBSP::ready() {
