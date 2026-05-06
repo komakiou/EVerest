@@ -192,7 +192,7 @@ active_modules:
         - module_id: DummyTokenValidator0
           implementation_id: main
     config_module:
-      ignore_connector_faults: false
+      ignore_connector_faults: true
       master_pass_group_id: ''
       prioritize_authorization_over_stopping_transaction: true
       selection_algorithm: FindFirst
