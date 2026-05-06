@@ -152,3 +152,75 @@ active_modules:
       secc_leaf_cert_directory: client/cso
       secc_leaf_key_directory: client/cso
       v2g_ca_bundle: ca/v2g/V2G_ROOT_CA.pem
+  OCPP0:
+    module: OCPP
+    connections:
+      evse_manager:
+        - module_id: EvseManager0
+          implementation_id: evse
+      auth:
+        - module_id: Auth0
+          implementation_id: main
+      reservation:
+        - module_id: Auth0
+          implementation_id: reservation
+      security:
+        - module_id: EvseSecurity0
+          implementation_id: main
+      system:
+        - module_id: System0
+          implementation_id: main
+    config_module:
+      ChargePointConfigPath: /home/pi/git/EVerest/config/raspi-evse-ocpp-config.json
+      DatabasePath: /tmp/ocpp_1_6_charge_point
+      EnableExternalWebsocketControl: false
+      MessageLogPath: /tmp/everest_ocpp_logs
+      MessageQueueResumeDelay: 0
+      PublishChargingScheduleDurationS: 600
+      PublishChargingScheduleIntervalS: 30
+      RequestCompositeScheduleUnit: A
+  Auth0:
+    module: Auth
+    connections:
+      evse_manager:
+        - module_id: EvseManager0
+          implementation_id: evse
+      token_provider:
+        - module_id: DummyTokenProvider0
+          implementation_id: main
+      token_validator:
+        - module_id: DummyTokenValidator0
+          implementation_id: main
+    config_module:
+      ignore_connector_faults: false
+      master_pass_group_id: ''
+      prioritize_authorization_over_stopping_transaction: true
+      selection_algorithm: FindFirst
+      connection_timeout: 60
+  DummyTokenProvider0:
+    module: DummyTokenProvider
+    connections:
+      evse:
+        - module_id: EvseManager0
+          implementation_id: evse
+    config_implementation:
+      main:
+        connector_id: 0
+        timeout: 10
+        token: DEADBEEF
+        type: RFID
+  DummyTokenValidator0:
+    module: DummyTokenValidator
+    connections: {}
+    config_implementation:
+      main:
+        sleep: 0.5
+        validation_reason: Token valid
+        validation_result: Accepted
+  System0:
+    module: System
+    connections: {}
+    config_module:
+      DefaultRetries: 1
+      DefaultRetryInterval: 1
+      ResetDelay: 0
